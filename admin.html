@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理 · 藏书阁</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- 导航栏 -->
+  <div id="navbar"></div>
+
+  <div class="admin-container">
+    <h1>管理员面板</h1>
+    <p class="subtitle">添加 / 删除文本，通过 GitHub API 自动提交</p>
+
+    <!-- GitHub 配置 -->
+    <div class="form-section">
+      <h2>GitHub 配置</h2>
+      <div class="form-group">
+        <label for="gh-token">Personal Access Token（需仓库写入权限）</label>
+        <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx">
+      </div>
+      <div class="form-group">
+        <label for="gh-owner">仓库所有者（用户名）</label>
+        <input type="text" id="gh-owner" placeholder="your-username">
+      </div>
+      <div class="form-group">
+        <label for="gh-repo">仓库名称</label>
+        <input type="text" id="gh-repo" placeholder="your-repo">
+      </div>
+      <div class="form-group">
+        <label for="gh-branch">分支名</label>
+        <input type="text" id="gh-branch" placeholder="main" value="main">
+      </div>
+      <button class="btn" id="btn-save-config">保存配置到本地</button>
+    </div>
+
+    <!-- 添加文本 -->
+    <div class="form-section">
+      <h2>添加文本</h2>
+
+      <div class="form-group">
+        <label for="text-title">标题 *</label>
+        <input type="text" id="text-title" placeholder="输入文本标题">
+      </div>
+
+      <div class="form-group">
+        <label for="text-author">作者</label>
+        <input type="text" id="text-author" placeholder="佚名" value="佚名">
+      </div>
+
+      <div class="form-group">
+        <label for="text-date">日期</label>
+        <input type="date" id="text-date">
+      </div>
+
+      <div class="form-group">
+        <label>分类标签 *（可多选）</label>
+        <div class="category-check-grid" id="category-checks">
+          <!-- 由 JS 动态生成 -->
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="text-content">正文 *</label>
+        <div class="upload-row">
+          <label class="btn btn-sm" for="file-upload" id="file-upload-btn">&#128194; 上传 TXT 文件</label>
+          <input type="file" id="file-upload" accept=".txt" style="display:none;">
+          <span class="text-muted" style="font-size:0.8rem;">上传后自动填入正文（也可在下方手动粘贴）</span>
+        </div>
+        <textarea id="text-content" placeholder="在此输入正文内容…"></textarea>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="btn-submit">提交到 GitHub</button>
+    </div>
+
+    <!-- 删除文本 -->
+    <div class="form-section">
+      <h2>删除文本</h2>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;">
+        点击下方按钮加载现有文本列表，然后选择要删除的条目。
+      </p>
+      <button class="btn" id="btn-load-texts">加载现有文本</button>
+      <div class="text-list" id="text-list"></div>
+    </div>
+  </div>
+
+  <script src="js/main.js"></script>
+  <script src="js/admin.js"></script>
+  <script>
+    // 渲染导航栏
+    document.getElementById('navbar').appendChild(renderNavbar('admin'));
+
+    // 渲染分类勾选列表
+    const checksContainer = document.getElementById('category-checks');
+    let html = '';
+
+    TOP_CATEGORIES.forEach(cat => {
+      const cfg = CATEGORY_CONFIG[cat];
+      html += `<div style="grid-column:1/-1;font-size:0.8rem;color:var(--text-muted);margin-top:8px;padding:4px 0;border-bottom:1px solid var(--border);">${cat}</div>`;
+      html += `<label class="category-check-item">
+        <input type="checkbox" value="${cat}"> ${cat}
+      </label>`;
+      cfg.subs.forEach(sub => {
+        html += `<label class="category-check-item">
+          <input type="checkbox" value="${sub}"> ${sub}
+        </label>`;
+      });
+    });
+
+    checksContainer.innerHTML = html;
+
+    // 设置默认日期为今天
+    document.getElementById('text-date').value = new Date().toISOString().split('T')[0];
+  </script>
+</body>
+</html>
