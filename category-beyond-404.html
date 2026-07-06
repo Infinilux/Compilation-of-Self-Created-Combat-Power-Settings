@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>超越404标准 · 藏书阁</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div id="navbar"></div>
+
+  <div class="container">
+    <div class="category-tabs" id="category-tabs"></div>
+    <div class="search-bar">
+      <span class="search-icon">&#128269;</span>
+      <input type="text" id="search-input" placeholder="搜索标题或正文…">
+    </div>
+    <div class="card-list" id="card-list"></div>
+  </div>
+
+  <script src="js/main.js"></script>
+  <script>
+    (async function() {
+      const TOP_CAT = '超越404标准';
+      const PAGE = 'beyond404';
+
+      document.getElementById('navbar').appendChild(renderNavbar(PAGE));
+      renderCategoryTabs(TOP_CAT, document.getElementById('category-tabs'));
+
+      await loadData();
+      let filtered = filterByCategory(allTexts, TOP_CAT);
+      let searchQuery = '';
+
+      function updateList() {
+        const result = searchTexts(filtered, searchQuery);
+        renderCardList(result, searchQuery, document.getElementById('card-list'));
+      }
+
+      document.getElementById('search-input').addEventListener('input', function() {
+        searchQuery = this.value;
+        updateList();
+      });
+
+      updateList();
+    })();
+  </script>
+</body>
+</html>

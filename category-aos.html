@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AOS标准 · 藏书阁</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- 导航栏 -->
+  <div id="navbar"></div>
+
+  <!-- 主内容 -->
+  <div class="container">
+    <!-- 分类标签 -->
+    <div class="category-tabs" id="category-tabs"></div>
+
+    <!-- 搜索框 -->
+    <div class="search-bar">
+      <span class="search-icon">&#128269;</span>
+      <input type="text" id="search-input" placeholder="搜索标题或正文…">
+    </div>
+
+    <!-- 子分类筛选 -->
+    <div class="filter-bar" id="filter-bar"></div>
+
+    <!-- 文本列表 -->
+    <div class="card-list" id="card-list"></div>
+  </div>
+
+  <script src="js/main.js"></script>
+  <script>
+    (async function() {
+      const TOP_CAT = 'aos标准';
+      const PAGE = 'aos';
+
+      // 渲染导航栏
+      document.getElementById('navbar').appendChild(renderNavbar(PAGE));
+
+      // 渲染分类tabs
+      renderCategoryTabs(TOP_CAT, document.getElementById('category-tabs'));
+
+      // 加载数据
+      await loadData();
+      let filtered = filterByCategory(allTexts, TOP_CAT);
+
+      // 当前子分类筛选
+      let activeSub = 'all';
+      let searchQuery = '';
+
+      function updateList() {
+        let result = filtered;
+
+        // 子分类筛选
+        if (activeSub !== 'all') {
+          result = filterBySubCategory(result, activeSub);
+        }
+
+        // 搜索
+        result = searchTexts(result, searchQuery);
+
+        // 渲染
+        renderCardList(result, searchQuery, document.getElementById('card-list'));
+      }
+
+      // 渲染筛选按钮
+      const filterBar = document.getElementById('filter-bar');
+      renderFilterBar(CATEGORY_CONFIG[TOP_CAT].subs, activeSub, filterBar, (sub) => {
+        activeSub = sub;
+        updateList();
+      });
+
+      // 搜索事件
+      const searchInput = document.getElementById('search-input');
+      searchInput.addEventListener('input', () => {
+        searchQuery = searchInput.value;
+        updateList();
+      });
+
+      // 初始渲染
+      updateList();
+    })();
+  </script>
+</body>
+</html>

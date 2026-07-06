@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>阅读 · 藏书阁</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- 导航栏 -->
+  <div id="navbar"></div>
+
+  <!-- 自定义背景图层 -->
+  <div class="reading-bg-image" id="bg-image"></div>
+
+  <!-- 阅读区 -->
+  <div class="reading-container">
+    <div class="reading-header">
+      <h1 class="reading-title" id="text-title"></h1>
+      <div class="reading-meta">
+        <span id="text-author"></span>
+        <span id="text-date"></span>
+        <span id="text-categories"></span>
+      </div>
+      <div class="reading-tags" id="text-tags"></div>
+    </div>
+    <div class="reading-content" id="text-content"></div>
+  </div>
+
+  <!-- 浮动工具栏 -->
+  <button class="toolbar-toggle" id="toolbar-toggle" title="阅读工具">&#9878;</button>
+  <div class="toolbar-panel" id="toolbar-panel">
+    <h3>阅读工具</h3>
+
+    <!-- 字数统计 -->
+    <div class="toolbar-row">
+      <label>字数统计</label>
+      <span class="value" id="stat-words">0</span>
+    </div>
+
+    <!-- 符号统计 -->
+    <div class="toolbar-row">
+      <label>符号数量</label>
+      <span class="value" id="stat-symbols">0</span>
+    </div>
+
+    <hr style="border-color:var(--border);margin:14px 0;">
+
+    <!-- 字体大小 -->
+    <div class="toolbar-row">
+      <label>字体大小</label>
+      <span class="value" id="val-fontsize">16px</span>
+    </div>
+    <input type="range" id="slider-fontsize" min="14" max="24" step="1" value="16">
+
+    <hr style="border-color:var(--border);margin:14px 0;">
+
+    <!-- 背景色预设 -->
+    <label style="font-size:0.85rem;color:var(--text-secondary);">背景色</label>
+    <div class="preset-group" id="bg-presets">
+      <button class="preset-btn" data-bg="pure">
+        <span class="preset-swatch" style="background:#000;"></span> 纯黑
+      </button>
+      <button class="preset-btn active" data-bg="dark">
+        <span class="preset-swatch" style="background:#0f0f0f;"></span> 深灰
+      </button>
+      <button class="preset-btn" data-bg="deeper">
+        <span class="preset-swatch" style="background:#050505;"></span> 更深黑
+      </button>
+    </div>
+
+    <hr style="border-color:var(--border);margin:14px 0;">
+
+    <!-- 自定义背景图 -->
+    <label style="font-size:0.85rem;color:var(--text-secondary);">背景图片</label>
+    <label class="file-upload-label" id="file-upload-label">
+      &#128247; 选择图片
+      <input type="file" id="bg-image-input" accept="image/*">
+    </label>
+    <button class="btn btn-block" id="btn-remove-bg" style="margin-top:4px;font-size:0.8rem;">移除背景图</button>
+
+    <!-- 模糊度 -->
+    <div class="toolbar-row" style="margin-top:12px;">
+      <label>模糊度</label>
+      <span class="value" id="val-blur">0px</span>
+    </div>
+    <input type="range" id="slider-blur" min="0" max="20" step="1" value="0">
+
+    <!-- 透明度 -->
+    <div class="toolbar-row">
+      <label>透明度</label>
+      <span class="value" id="val-opacity">15%</span>
+    </div>
+    <input type="range" id="slider-opacity" min="5" max="40" step="1" value="15">
+  </div>
+
+  <script src="js/main.js"></script>
+  <script>
+    (async function() {
+      // 渲染导航栏
+      document.getElementById('navbar').appendChild(renderNavbar('reading'));
+
+      // 加载数据
+      await loadData();
+
+      // 获取文本 ID
+      const id = getParam('id');
+      const text = allTexts.find(t => t.id === id);
+
+      if (!text) {
+        document.getElementById('text-title').textContent = '文本未找到';
+        document.getElementById('text-content').innerHTML = '<p style="color:var(--text-muted);">请检查链接是否正确。</p>';
+        return;
+      }
+
+      // 填充内容
+      document.title = text.title + ' · 藏书阁';
+      document.getElementById('text-title').textContent = text.title;
+      document.getElementById('text-author').innerHTML = '&#9998; ' + text.author;
+      document.getElementById('text-date').innerHTML = '&#128197; ' + formatDate(text.date);
+      document.getElementById('text-tags').innerHTML = text.categories.map(c =>
+        `<span class="reading-tag">${c}</span>`
+      ).join('');
+
+      // 渲染正文（段落拆分）
+      const paragraphs = text.content.split('\n').filter(p => p.trim());
+      document.getElementById('text-content').innerHTML = paragraphs.map(p =>
+        `<p>${p}</p>`
+      ).join('');
+
+      // --- 阅读设置 ---
+      const contentEl = document.getElementById('text-content');
+      const bgImageEl = document.getElementById('bg-image');
+
+      // 字数及符号统计
+      document.getElementById('stat-words').textContent = countWords(text.content);
+      document.getElementById('stat-symbols').textContent = countSymbols(text.content);
+
+      // 字体大小
+      const fontSizeSlider = document.getElementById('slider-fontsize');
+      const fontSizeVal = document.getElementById('val-fontsize');
+      const savedFontSize = lsGet('fontSize', 16);
+      fontSizeSlider.value = savedFontSize;
+      fontSizeVal.textContent = savedFontSize + 'px';
+      contentEl.style.setProperty('--reading-font-size', savedFontSize / 16 + 'rem');
+
+      fontSizeSlider.addEventListener('input', () => {
+        const v = parseInt(fontSizeSlider.value);
+        fontSizeVal.textContent = v + 'px';
+        contentEl.style.setProperty('--reading-font-size', v / 16 + 'rem');
+        lsSet('fontSize', v);
+      });
+
+      // 背景色预设
+      const bgPresets = document.getElementById('bg-presets');
+      const savedBg = lsGet('bgColor', 'dark');
+      applyBgClass(savedBg);
+      bgPresets.querySelector(`[data-bg="${savedBg}"]`)?.classList.add('active');
+
+      bgPresets.addEventListener('click', (e) => {
+        const btn = e.target.closest('.preset-btn');
+        if (!btn) return;
+        const bg = btn.dataset.bg;
+        applyBgClass(bg);
+        bgPresets.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        lsSet('bgColor', bg);
+      });
+
+      function applyBgClass(bg) {
+        document.body.classList.remove('reading-bg-pure', 'reading-bg-dark', 'reading-bg-deeper');
+        if (bg !== 'image') {
+          document.body.classList.add('reading-bg-' + bg);
+        }
+      }
+
+      // 背景图
+      const savedBgImage = lsGet('bgImage', null);
+      const savedBlur = lsGet('bgBlur', 0);
+      const savedOpacity = lsGet('bgOpacity', 15);
+
+      if (savedBgImage) {
+        bgImageEl.style.backgroundImage = `url(${savedBgImage})`;
+        bgImageEl.style.setProperty('--bg-img-blur', savedBlur + 'px');
+        bgImageEl.style.setProperty('--bg-img-opacity', savedOpacity / 100);
+      }
+
+      // 背景图上传
+      document.getElementById('bg-image-input').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          const dataUrl = ev.target.result;
+          bgImageEl.style.backgroundImage = `url(${dataUrl})`;
+          lsSet('bgImage', dataUrl);
+          document.body.classList.remove('reading-bg-pure', 'reading-bg-dark', 'reading-bg-deeper');
+          lsSet('bgColor', 'image');
+        };
+        reader.readAsDataURL(file);
+      });
+
+      document.getElementById('btn-remove-bg').addEventListener('click', () => {
+        bgImageEl.style.backgroundImage = '';
+        lsSet('bgImage', null);
+        applyBgClass('dark');
+        lsSet('bgColor', 'dark');
+        bgPresets.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        bgPresets.querySelector('[data-bg="dark"]')?.classList.add('active');
+        document.getElementById('slider-blur').value = 0;
+        document.getElementById('slider-opacity').value = 15;
+        document.getElementById('val-blur').textContent = '0px';
+        document.getElementById('val-opacity').textContent = '15%';
+        lsSet('bgBlur', 0);
+        lsSet('bgOpacity', 15);
+      });
+
+      // 模糊度
+      const blurSlider = document.getElementById('slider-blur');
+      const blurVal = document.getElementById('val-blur');
+      blurSlider.value = savedBlur;
+      blurVal.textContent = savedBlur + 'px';
+      blurSlider.addEventListener('input', () => {
+        const v = parseInt(blurSlider.value);
+        blurVal.textContent = v + 'px';
+        bgImageEl.style.setProperty('--bg-img-blur', v + 'px');
+        lsSet('bgBlur', v);
+      });
+
+      // 透明度
+      const opacitySlider = document.getElementById('slider-opacity');
+      const opacityVal = document.getElementById('val-opacity');
+      opacitySlider.value = savedOpacity;
+      opacityVal.textContent = savedOpacity + '%';
+      opacitySlider.addEventListener('input', () => {
+        const v = parseInt(opacitySlider.value);
+        opacityVal.textContent = v + '%';
+        bgImageEl.style.setProperty('--bg-img-opacity', v / 100);
+        lsSet('bgOpacity', v);
+      });
+
+      // 工具栏切换
+      const toolbarToggle = document.getElementById('toolbar-toggle');
+      const toolbarPanel = document.getElementById('toolbar-panel');
+      toolbarToggle.addEventListener('click', () => {
+        toolbarPanel.classList.toggle('open');
+      });
+      document.addEventListener('click', (e) => {
+        if (!toolbarPanel.contains(e.target) && e.target !== toolbarToggle) {
+          toolbarPanel.classList.remove('open');
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
