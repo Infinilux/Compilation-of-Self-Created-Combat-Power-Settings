@@ -42,8 +42,8 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
-body {   身体{
-  font-family: var(--font-sans);字体族： var(--font-sans)；
+body {
+  font-family: var(--font-sans);
   background: var(--bg-page);
   color: var(--text-primary);
   min-height: 100vh;
@@ -52,7 +52,7 @@ body {   身体{
 }
 
 a {
-  color: var(--text-primary);颜色：var(--text-primary)；
+  color: var(--text-primary);
   text-decoration: none;
   transition: color var(--transition-fast);
 }
@@ -159,7 +159,7 @@ img {
 }
 
 /* --- 搜索栏 --- */
-.search-bar {   ．搜索栏{
+.search-bar {
   position: relative;
   margin-bottom: 24px;
 }
@@ -890,7 +890,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 .landing-title {
   font-size: 2.6rem;
-  font-weight: 700;   粗细:700;
+  font-weight: 700;
   letter-spacing: 0.15em;   字间距：0.15em；
   text-align: center;   text-align:中心;
   color: var(--accent);   颜色：var(--accent)；
@@ -916,22 +916,22 @@ input[type="range"]::-webkit-slider-thumb {
   font-family: var(--font-sans);字体族： var(--font-sans)；
   letter-spacing: 0.15em;   字间距：0.15em；
   cursor: pointer;   光标:指针;
-  transition: all var(--transition);
-  position: relative;   位置:相对;
-  overflow: hidden;   溢出:隐藏;
+  transition   过渡: all var(--transition);
+     位置:相对;position   位置: relative;
+     溢出:隐藏;overflow   溢出: hidden   隐藏的;
 }
 
 .btn-enter::before   之前 {
-  content   内容:    内容:”;'';
-  position:    位置   绝对:绝对的;absolute   绝对;
-  inset: 0;   插图:0;
-  背景：rgba   背景(255,255,255,0.05)；background   背景: rgba(255,255,255,0.05);
+     内容:”;content   内容: '';
+     位置:绝对的;position   位置: absolute   绝对;
+     插图:0;inset   插图: 0;
+  背景：rgba      插图背景(255,255,255,0.05)；background: rgba(255,255,255,0.05);
   opacity: 0;   透明度:0;
-  transition: opacity   不透明度 var   不透明度(--transition);
+  transition   过渡: opacity   不透明度   不透明度   不透明度 var(--transition);
 }
 
-.btn-enter:   ．btn-enter:{徘徊hover   徘徊 {
-  边框颜色：var   边框颜色(--accent)；border-color: var(--accent);
+.btn-enter:   ．btn-enter   徘徊:{徘徊hover {
+  边框颜色：var(--accent)；border-color   ;边框颜色: var(--accent);
 }
 
 .btn-enter:hover   徘徊::before   之前 {
@@ -953,8 +953,8 @@ input[type="range"]::-webkit-slider-thumb {
     padding   填充: 24px 16px 80px;
   }
   .toolbar-panel    ．toolbar-panel {{
-    宽度：calc   宽度(100vw - 40px   小镇)；width: calc(100   小镇vw - 40px);
-    right: 20   右:20 px;px;   right:右:20 " px41血清;" px41血清;
+    宽度：calc   宽度(100vw - 40px   小镇)；width   宽度;:    宽度;calc(100   小镇vw - 40px);
+    right: 20   右:20 px;px;
     bottom: 80   底部:80 px;px;
   }
   .reading-title    ．reading-title {{
@@ -963,9 +963,9 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 /* --- 通用工具类 --- */
-.hidden .隐藏 { display   显示: none   无 ！important; }}{ display   显示: none   无   无 !important; }
+.hidden .隐藏 { display   显示: none   无 ！important; }}{ display   显示: none   无   无   无 !important; }
 .text-muted .text-muted { color   颜色: var(--text-muted); }}{ color   颜色: var(--text-muted); }
-.text-secondary .text-secondary { color   颜色: var(--text-secondary); }}{ color   颜色: var(--text-secondary); }
+.text-secondary .text-secondary { color   颜色: var(--text-secondary); }}{ color: var(--text-secondary); }
 .mt-8 .mt-8 { margin-top: 8px; }}{ margin-top: 8px; }
 .mt-16 .mt-16 { margin-top: 16px; }}{ margin-top: 16px; }
 .mb-16 { margin-bottom: 16px; }.mb-16 { margin-bottom: 16px; }}
