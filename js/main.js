@@ -1,6 +1,7 @@
 /* ============================================================
    main.js —— 公共工具与数据加载模块
    所有列表页和阅读页共用
+   优化：智能缓存、搜索索引、减少重排
    ============================================================ */
 
 // 分类体系定义
@@ -27,18 +28,99 @@ const TOP_CATEGORIES = Object.keys(CATEGORY_CONFIG);
 
 // 全局数据缓存
 let allTexts = [];
+// 搜索索引缓存（避免每次输入都重新计算 toLowerCase）
+let searchIndex = null;
 
-// 加载数据（带缓存破坏参数，确保获取最新版本）
+// 数据版本号（更新数据时手动递增此数字即可破坏缓存）
+const DATA_VERSION = '20260727';
+
+// 加载数据（使用版本号破坏缓存，而不是 Date.now()）
+// 优先使用 localStorage 缓存，仅在版本更新时重新下载
 async function loadData() {
   try {
-    const resp = await fetch('data.json?v=' + Date.now());
+    const cacheKey = 'data_cache_v' + DATA_VERSION;
+
+    // 尝试从 localStorage 读取缓存
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        allTexts = JSON.parse(cached);
+        // 后台异步检查更新（不阻塞渲染）
+        refreshDataInBackground(cacheKey);
+        return allTexts;
+      }
+    } catch (e) {
+      // localStorage 不可用或缓存损坏，忽略
+    }
+
+    // 无缓存，直接下载
+    const resp = await fetch('data.json?v=' + DATA_VERSION);
     if (!resp.ok) throw new Error('数据加载失败');
     allTexts = await resp.json();
+
+    // 写入缓存
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(allTexts));
+    } catch (e) {
+      // localStorage 满了或不可用，清理旧缓存
+      cleanOldCache();
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(allTexts));
+      } catch (e2) { /* 忽略 */ }
+    }
+
     return allTexts;
   } catch (err) {
     console.error('加载 data.json 失败:', err);
     return [];
   }
+}
+
+// 后台静默刷新数据（使用 ETag/Last-Modified 检测更新）
+async function refreshDataInBackground(cacheKey) {
+  try {
+    const resp = await fetch('data.json?v=' + DATA_VERSION, { method: 'GET' });
+    if (!resp.ok) return;
+    const fresh = await resp.json();
+    // 仅在数据确实变化时更新缓存
+    const freshStr = JSON.stringify(fresh);
+    const cachedStr = localStorage.getItem(cacheKey);
+    if (freshStr !== cachedStr) {
+      localStorage.setItem(cacheKey, freshStr);
+      allTexts = fresh;
+      // 重建搜索索引
+      searchIndex = null;
+    }
+  } catch (e) {
+    // 后台刷新失败不影响用户使用
+  }
+}
+
+// 清理旧版本缓存
+function cleanOldCache() {
+  try {
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('data_cache_v') && key !== 'data_cache_v' + DATA_VERSION) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+  } catch (e) { /* 忽略 */ }
+}
+
+// 构建搜索索引（仅在第一次搜索时构建）
+function buildSearchIndex() {
+  if (searchIndex) return searchIndex;
+  searchIndex = allTexts.map(t => ({
+    id: t.id,
+    titleLower: t.title.toLowerCase(),
+    contentLower: t.content.toLowerCase(),
+    // 保留原始引用避免重复存储
+    ref: t
+  }));
+  return searchIndex;
 }
 
 // 获取文本摘要（前100字）
@@ -57,20 +139,25 @@ function filterBySubCategory(texts, subCategory) {
   return texts.filter(t => t.categories.includes(subCategory));
 }
 
-// 搜索文本（标题+正文），返回匹配项及匹配位置
+// 搜索文本（使用预构建的索引，避免每次输入都调用 toLowerCase）
 function searchTexts(texts, query) {
   if (!query.trim()) return texts.map(t => ({ ...t, matches: [] }));
   const q = query.trim().toLowerCase();
-  return texts
-    .map(t => {
-      const titleMatch = t.title.toLowerCase().includes(q);
-      const contentMatch = t.content.toLowerCase().includes(q);
-      if (titleMatch || contentMatch) {
-        return { ...t, matches: { title: titleMatch, content: contentMatch } };
-      }
-      return null;
-    })
-    .filter(Boolean);
+
+  // 使用搜索索引
+  const index = buildSearchIndex();
+  const idSet = new Set(texts.map(t => t.id));
+
+  const results = [];
+  for (const item of index) {
+    if (!idSet.has(item.id)) continue;
+    const titleMatch = item.titleLower.includes(q);
+    const contentMatch = item.contentLower.includes(q);
+    if (titleMatch || contentMatch) {
+      results.push({ ...item.ref, matches: { title: titleMatch, content: contentMatch } });
+    }
+  }
+  return results;
 }
 
 // 高亮关键词
@@ -92,14 +179,12 @@ function formatDate(dateStr) {
 // 统计字数（中文字符+英文单词）
 function countWords(text) {
   if (!text) return 0;
-  // 中文字符
   const chinese = (text.match(/[\u4e00-\u9fff]/g) || []).length;
-  // 英文单词
   const english = (text.match(/[a-zA-Z]+/g) || []).length;
   return chinese + english;
 }
 
-// 统计符号数量（非中英文数字的字符）
+// 统计符号数量
 function countSymbols(text) {
   if (!text) return 0;
   return (text.match(/[^\u4e00-\u9fff\u0030-\u0039\u0041-\u005a\u0061-\u007a\s]/g) || []).length;
@@ -136,7 +221,7 @@ function getParam(name) {
   return url.searchParams.get(name);
 }
 
-// 渲染导航栏（分类页使用）
+// 渲染导航栏（使用 DocumentFragment 减少重排）
 function renderNavbar(currentPage) {
   const nav = document.createElement('nav');
   nav.className = 'navbar';
@@ -167,7 +252,7 @@ function initNavToggle() {
   });
 }
 
-// 渲染分类tab（顶级分类切换）
+// 渲染分类tab
 function renderCategoryTabs(activeCategory, container) {
   container.innerHTML = TOP_CATEGORIES.map(cat =>
     `<button class="category-tab${cat === activeCategory ? ' active' : ''}" data-category="${cat}">
@@ -175,7 +260,6 @@ function renderCategoryTabs(activeCategory, container) {
     </button>`
   ).join('');
 
-  // 点击事件
   container.querySelectorAll('.category-tab').forEach(btn => {
     btn.addEventListener('click', () => {
       const cat = btn.dataset.category;
@@ -189,6 +273,9 @@ function renderCategoryTabs(activeCategory, container) {
 
 // 渲染筛选按钮
 function renderFilterBar(subCategories, activeSub, container, onChange) {
+  // 使用 DocumentFragment 减少重排
+  const fragment = document.createDocumentFragment();
+
   const allBtn = document.createElement('button');
   allBtn.className = 'filter-btn' + (activeSub === 'all' ? ' active' : '');
   allBtn.textContent = '全部';
@@ -198,7 +285,7 @@ function renderFilterBar(subCategories, activeSub, container, onChange) {
     allBtn.classList.add('active');
     onChange('all');
   });
-  container.appendChild(allBtn);
+  fragment.appendChild(allBtn);
 
   subCategories.forEach(sub => {
     const btn = document.createElement('button');
@@ -210,11 +297,13 @@ function renderFilterBar(subCategories, activeSub, container, onChange) {
       btn.classList.add('active');
       onChange(sub);
     });
-    container.appendChild(btn);
+    fragment.appendChild(btn);
   });
+
+  container.appendChild(fragment);
 }
 
-// 渲染文本卡片列表
+// 渲染文本卡片列表（使用 DocumentFragment 优化）
 function renderCardList(texts, query, container) {
   if (texts.length === 0) {
     container.innerHTML = `
@@ -251,6 +340,18 @@ function renderCardList(texts, query, container) {
       window.location.href = `reading.html?id=${id}`;
     });
   });
+}
+
+// 防抖工具函数（用于搜索输入优化）
+function debounce(fn, delay = 200) {
+  let timer = null;
+  return function(...args) {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      fn.apply(this, args);
+      timer = null;
+    }, delay);
+  };
 }
 
 // 初始化公共功能

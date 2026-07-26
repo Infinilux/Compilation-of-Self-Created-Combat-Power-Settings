@@ -71,12 +71,12 @@
         updateList();
       });
 
-      // 搜索事件
+      // 搜索事件（带防抖优化）
       const searchInput = document.getElementById('search-input');
-      searchInput.addEventListener('input', () => {
+      searchInput.addEventListener('input', debounce(() => {
         searchQuery = searchInput.value;
         updateList();
-      });
+      }, 200));
 
       // 初始渲染
       updateList();

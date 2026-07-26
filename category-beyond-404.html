@@ -37,10 +37,10 @@
         renderCardList(result, searchQuery, document.getElementById('card-list'));
       }
 
-      document.getElementById('search-input').addEventListener('input', function() {
+      document.getElementById('search-input').addEventListener('input', debounce(function() {
         searchQuery = this.value;
         updateList();
-      });
+      }, 200));
 
       updateList();
     })();
