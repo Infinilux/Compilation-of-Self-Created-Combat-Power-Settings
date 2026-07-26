@@ -876,96 +876,94 @@ input[type="range"]::-webkit-slider-thumb {
   justify-content: center;
   z-index: 10;
   pointer-events: none;
+  background: #ffffff;
 }
 
 .landing > * {
   pointer-events: auto;
 }
 
-.landing canvas {
+#particle-canvas {
   position: fixed;
   inset: 0;
   z-index: 0;
+  display: block;
+  background: #ffffff;
 }
 
 .landing-title {
   font-size: 2.6rem;
   font-weight: 700;
-  letter-spacing: 0.15em;   字间距：0.15em；
-  text-align: center;   text-align:中心;
-  color: var(--accent);   颜色：var(--accent)；
-  margin-bottom: 8px;
-  text-shadow: 0 0 40px rgba(255,255,255,0.15);
+  letter-spacing: 0.15em;
+  text-align: center;
+  color: #000000;
+  margin-bottom: 48px;
+  text-shadow: 0 0 24px rgba(255,255,255,0.8);
 }
 
-.landing-subtitle {   ．landing-subtitle {
-  font-size: 0.9rem;   字体大小:0.9快速眼动;
-  color: var(--text-muted);   颜色：var(--text-muted)；
-  letter-spacing: 0.2em;   字间距：0.2em；
-  margin-bottom: 40px;   margin-bottom: 40像素;
-  text-align: center;   text-align:中心;
+.landing-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  letter-spacing: 0.2em;
+  margin-bottom: 40px;
+  text-align: center;
 }
 
-.btn-enter {   ．btn-enter——
-  padding: 14px 48px;   填充：14px 48px；
-  border: 1px solid rgba(255,255,255,0.3);边框：1px 实线 rgba(255,255,255,0.3)；
+.btn-enter {
+  padding: 14px 48px;
+  border: 1px solid rgba(0,0,0,0.4);
   border-radius: 2px;
-  background: transparent;   背景：透明；
-  color: var(--accent);   颜色：var(--accent)；
-  font-size: 0.95rem;   字体大小:0.95快速眼动;
-  font-family: var(--font-sans);字体族： var(--font-sans)；
-  letter-spacing: 0.15em;   字间距：0.15em；
-  cursor: pointer;   光标:指针;
-  transition   过渡: all var(--transition);
-     位置:相对;position   位置: relative;
-     溢出:隐藏;overflow   溢出: hidden   隐藏的;
+  background: rgba(255,255,255,0.6);
+  color: #000000;
+  font-size: 0.95rem;
+  font-family: var(--font-sans);
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  transition: all var(--transition);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
-.btn-enter::before   之前 {
-     内容:”;content   内容: '';
-     位置:绝对的;position   位置: absolute   绝对;
-     插图:0;inset   插图: 0;
-  背景：rgba      插图背景(255,255,255,0.05)；background: rgba(255,255,255,0.05);
-  opacity: 0;   透明度:0;
-  transition   过渡: opacity   不透明度   不透明度   不透明度 var(--transition);
+.btn-enter:hover {
+  background: #000000;
+  color: #ffffff;
+  border-color: #000000;
 }
 
-.btn-enter:   ．btn-enter   徘徊:{徘徊hover {
-  边框颜色：var(--accent)；border-color   ;边框颜色: var(--accent);
-}
-
-.btn-enter:hover   徘徊::before   之前 {
-     透明度:1;opacity   不透明度: 1;
+.btn-enter:active {
+  transform: translateY(1px);
 }
 
 /* 响应式 */
 @media (max-width: 600px) {
-  .landing-title    ．landing-title {{
-       字体大小:1.8快速眼动;font-size   字体大小: 1.8rem;
+  .landing-title {
+    font-size: 1.8rem;
   }
-  .container    ．容器{{
-       填充:16 px;padding   填充: 16px;
+  .container {
+    padding: 16px;
   }
   .card-list {
-    grid-template-columns   网格模板列: 1fr   真的吗;
+    grid-template-columns: 1fr;
   }
-  .reading-container    .阅读容器 {{
-    padding   填充: 24px 16px 80px;
+  .reading-container {
+    padding: 24px 16px 80px;
   }
-  .toolbar-panel    ．toolbar-panel {{
-    宽度：calc   宽度(100vw - 40px   小镇)；width   宽度;:    宽度;calc(100   小镇vw - 40px);
-    right: 20   右:20 px;px;
-    bottom: 80   底部:80 px;px;
+  .toolbar-panel {
+    width: calc(100vw - 40px);
+    right: 20px;
+    bottom: 80px;
   }
-  .reading-title    ．reading-title {{
-       字体大小:1.4快速眼动;font-size   字体大小: 1.4rem;
+  .reading-title {
+    font-size: 1.4rem;
   }
 }
 
 /* --- 通用工具类 --- */
-.hidden .隐藏 { display   显示: none   无 ！important; }}{ display   显示: none   无   无   无 !important; }
-.text-muted .text-muted { color   颜色: var(--text-muted); }}{ color   颜色: var(--text-muted); }
-.text-secondary .text-secondary { color   颜色: var(--text-secondary); }}{ color: var(--text-secondary); }
-.mt-8 .mt-8 { margin-top: 8px; }}{ margin-top: 8px; }
-.mt-16 .mt-16 { margin-top: 16px; }}{ margin-top: 16px; }
-.mb-16 { margin-bottom: 16px; }.mb-16 { margin-bottom: 16px; }}
+.hidden { display: none !important; }
+.text-muted { color: var(--text-muted); }
+.text-secondary { color: var(--text-secondary); }
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mb-16 { margin-bottom: 16px; }

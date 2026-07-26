@@ -1,6 +1,7 @@
 /* ============================================================
    particles.js —— 几何粒子动效系统
    用于 index.html 开场交互
+   白色背景 + 黑色点 + 距离阈值连线构成几何网络
    ============================================================ */
 
 class ParticleSystem {
@@ -8,29 +9,53 @@ class ParticleSystem {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.particles = [];
-    this.mouse = { x: -100, y: -100, active: false };
     this.width = 0;
     this.height = 0;
     this.animationId = null;
-    this.lastSpawn = 0;
-    this.spawnInterval = 80; // ms
+    this.mouse = { x: -1000, y: -1000, active: false };
+    this.connectThreshold = 130; // 连线距离阈值
+    this.maxSpeed = 0.9;         // 最大速度，保证运动缓慢
+    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
 
     this.resize();
     this.bindEvents();
+    this.initParticles();
     this.animate();
   }
 
   resize() {
     this.width = window.innerWidth;
     this.height = window.innerHeight;
-    this.canvas.width = this.width;
-    this.canvas.height = this.height;
+    // 适配高分屏
+    this.canvas.width = this.width * this.dpr;
+    this.canvas.height = this.height * this.dpr;
+    this.canvas.style.width = this.width + 'px';
+    this.canvas.style.height = this.height + 'px';
+    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+
+    // 根据屏幕面积调整粒子数量
+    const targetCount = Math.min(110, Math.max(40, Math.floor((this.width * this.height) / 14000)));
+    while (this.particles.length < targetCount) {
+      this.addParticle();
+    }
+    while (this.particles.length > targetCount) {
+      this.particles.pop();
+    }
+  }
+
+  addParticle() {
+    this.particles.push({
+      x: Math.random() * this.width,
+      y: Math.random() * this.height,
+      vx: (Math.random() - 0.5) * 0.4, // 初始缓慢速度
+      vy: (Math.random() - 0.5) * 0.4,
+      radius: 1.2 + Math.random() * 1.6
+    });
   }
 
   bindEvents() {
     window.addEventListener('resize', () => this.resize());
 
-    // 鼠标移动
     window.addEventListener('mousemove', (e) => {
       this.mouse.x = e.clientX;
       this.mouse.y = e.clientY;
@@ -39,9 +64,10 @@ class ParticleSystem {
 
     window.addEventListener('mouseleave', () => {
       this.mouse.active = false;
+      this.mouse.x = -1000;
+      this.mouse.y = -1000;
     });
 
-    // 触摸事件
     window.addEventListener('touchmove', (e) => {
       if (e.touches.length > 0) {
         this.mouse.x = e.touches[0].clientX;
@@ -52,137 +78,98 @@ class ParticleSystem {
 
     window.addEventListener('touchend', () => {
       this.mouse.active = false;
+      this.mouse.x = -1000;
+      this.mouse.y = -1000;
     });
   }
 
-  // 创建粒子爆发
-  spawnBurst(x, y) {
-    const count = 8 + Math.floor(Math.random() * 12);
-    const shapeType = Math.floor(Math.random() * 3); // 0: 圆形扩散, 1: 三角, 2: 网格
-
-    for (let i = 0; i < count; i++) {
-      let angle, speed, life;
-
-      switch (shapeType) {
-        case 0: // 圆形扩散
-          angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
-          speed = 1.5 + Math.random() * 3;
-          life = 40 + Math.random() * 30;
-          break;
-        case 1: // 三角形
-          angle = (Math.PI * 2 * i) / 3 + (Math.random() - 0.5) * 0.3;
-          speed = 2 + Math.random() * 4;
-          life = 30 + Math.random() * 25;
-          break;
-        case 2: // 网格线
-          angle = (Math.PI / 2) * (i % 4) + (Math.random() - 0.5) * 0.2;
-          speed = 2.5 + Math.random() * 3;
-          life = 35 + Math.random() * 20;
-          break;
-      }
-
-      this.particles.push({
-        x: x + (Math.random() - 0.5) * 10,
-        y: y + (Math.random() - 0.5) * 10,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        life: life,
-        maxLife: life,
-        size: 0.5 + Math.random() * 1.5,
-        shapeType: shapeType,
-        connectId: i < 4 ? i : null // 用于连线
-      });
-    }
-
-    // 限制粒子总数
-    if (this.particles.length > 300) {
-      this.particles.splice(0, this.particles.length - 300);
-    }
-  }
-
-  // 绘制连线
-  drawConnections(particles) {
-    const ctx = this.ctx;
-    const threshold = 80;
-
-    for (let i = 0; i < particles.length; i++) {
-      for (let j = i + 1; j < particles.length; j++) {
-        const dx = particles[i].x - particles[j].x;
-        const dy = particles[i].y - particles[j].y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist < threshold) {
-          const alpha = (1 - dist / threshold) * 0.15 * (particles[i].life / particles[i].maxLife) * (particles[j].life / particles[j].maxLife);
-          ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
-          ctx.lineWidth = 0.5;
-          ctx.beginPath();
-          ctx.moveTo(particles[i].x, particles[i].y);
-          ctx.lineTo(particles[j].x, particles[j].y);
-          ctx.stroke();
-        }
-      }
+  initParticles() {
+    const targetCount = Math.min(110, Math.max(40, Math.floor((this.width * this.height) / 14000)));
+    for (let i = 0; i < targetCount; i++) {
+      this.addParticle();
     }
   }
 
   animate() {
     const ctx = this.ctx;
-    const now = Date.now();
 
-    // 清理画布 - 使用拖尾效果
-    ctx.fillStyle = 'rgba(10,10,10,0.15)';
+    // 白色背景
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, this.width, this.height);
 
-    // 鼠标活跃时生成粒子
-    if (this.mouse.active && now - this.lastSpawn > this.spawnInterval) {
-      this.spawnBurst(this.mouse.x, this.mouse.y);
-      this.lastSpawn = now;
-    }
-
-    // 背景粒子（始终存在少量）
-    if (!this.mouse.active && Math.random() < 0.03) {
-      const rx = Math.random() * this.width;
-      const ry = Math.random() * this.height;
-      this.particles.push({
-        x: rx,
-        y: ry,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5,
-        life: 60 + Math.random() * 40,
-        maxLife: 100,
-        size: 0.3 + Math.random() * 0.8,
-        shapeType: -1,
-        connectId: null
-      });
-    }
-
-    // 更新和绘制粒子
-    const alive = [];
+    // 更新粒子位置
     for (const p of this.particles) {
       p.x += p.vx;
       p.y += p.vy;
-      p.life--;
 
-      if (p.life <= 0) continue;
+      // 边界反弹
+      if (p.x < 0) { p.x = 0; p.vx *= -1; }
+      else if (p.x > this.width) { p.x = this.width; p.vx *= -1; }
+      if (p.y < 0) { p.y = 0; p.vy *= -1; }
+      else if (p.y > this.height) { p.y = this.height; p.vy *= -1; }
 
-      const alpha = p.life / p.maxLife;
-      const size = p.size * alpha;
+      // 鼠标交互：轻微排斥，增加几何图形的动态感
+      if (this.mouse.active) {
+        const dx = p.x - this.mouse.x;
+        const dy = p.y - this.mouse.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 120 && dist > 0.01) {
+          const force = (120 - dist) / 120 * 0.06;
+          p.vx += (dx / dist) * force;
+          p.vy += (dy / dist) * force;
+        }
+      }
 
-      // 绘制粒子光点
-      ctx.fillStyle = `rgba(255,255,255,${alpha * 0.8})`;
-      ctx.shadowColor = `rgba(255,255,255,${alpha * 0.4})`;
-      ctx.shadowBlur = size * 4;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
+      // 限制最大速度，保持缓慢运动
+      const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+      if (speed > this.maxSpeed) {
+        p.vx = (p.vx / speed) * this.maxSpeed;
+        p.vy = (p.vy / speed) * this.maxSpeed;
+      }
 
-      alive.push(p);
+      // 轻微阻尼，避免速度持续累积
+      p.vx *= 0.995;
+      p.vy *= 0.995;
+
+      // 防止完全静止
+      const minSpeed = 0.08;
+      const curSpeed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+      if (curSpeed < minSpeed) {
+        p.vx += (Math.random() - 0.5) * 0.05;
+        p.vy += (Math.random() - 0.5) * 0.05;
+      }
     }
 
-    // 绘制连线
-    this.drawConnections(alive);
+    // 绘制连线（距离小于阈值时连线，构成几何网络）
+    const threshold = this.connectThreshold;
+    for (let i = 0; i < this.particles.length; i++) {
+      const p1 = this.particles[i];
+      for (let j = i + 1; j < this.particles.length; j++) {
+        const p2 = this.particles[j];
+        const dx = p1.x - p2.x;
+        const dy = p1.y - p2.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < threshold) {
+          // 距离越近线越深
+          const alpha = (1 - dist / threshold) * 0.55;
+          ctx.strokeStyle = `rgba(0,0,0,${alpha})`;
+          ctx.lineWidth = 0.6;
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.stroke();
+        }
+      }
+    }
 
-    this.particles = alive;
+    // 绘制黑色点
+    ctx.fillStyle = '#000000';
+    for (const p of this.particles) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     this.animationId = requestAnimationFrame(() => this.animate());
   }
 
