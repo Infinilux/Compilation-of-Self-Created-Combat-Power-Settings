@@ -28,10 +28,10 @@ const TOP_CATEGORIES = Object.keys(CATEGORY_CONFIG);
 // 全局数据缓存
 let allTexts = [];
 
-// 加载数据
+// 加载数据（带缓存破坏参数，确保获取最新版本）
 async function loadData() {
   try {
-    const resp = await fetch('data.json');
+    const resp = await fetch('data.json?v=' + Date.now());
     if (!resp.ok) throw new Error('数据加载失败');
     allTexts = await resp.json();
     return allTexts;
