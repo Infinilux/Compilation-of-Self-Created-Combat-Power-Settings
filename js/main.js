@@ -36,7 +36,7 @@ let allTexts = [];
 let searchIndex = null;
 
 // 数据版本号（更新数据时手动递增此数字即可破坏缓存）
-const DATA_VERSION = '20260729';
+const DATA_VERSION = '20260730';
 
 // 加载数据（使用版本号破坏缓存，而不是 Date.now()）
 // 优先使用 localStorage 缓存，仅在版本更新时重新下载
@@ -377,15 +377,18 @@ function wrapBareLatex(text) {
   // 修正 \ 后面多余的空格：\ Gamma → \Gamma
   text = text.replace(/\\\s+([a-zA-Z])/g, '\\$1');
 
-  // 中文字符和中文标点作为片段边界
+  // 片段边界：遇到这些字符就分割，两边的 LaTeX 片段分别包裹
   // \u4e00-\u9fff: 中文字符
-  // \u3000-\u303f: CJK 标点
-  // \uff00-\uffef: 全角字符（包括全角括号（）等）
-  // 额外中文标点
-  const boundary = '\\u4e00-\\u9fff\\u3000-\\u303f\\uff00-\\uffef，。、；：！？';
+  // \u3000-\u303f: CJK 标点（、。…等）
+  // \uff00-\uffef: 全角字符（（）＝＜等）
+  // \u2190-\u21ff: 箭头符号（↑→↓等）—— KaTeX 不认识这些 Unicode 符号
+  // \u2200-\u22ff: 数学运算符（∞≤≥≠等）—— 同上
+  // \u2026: 省略号 …
+  const boundary = '\\u4e00-\\u9fff\\u3000-\\u303f\\uff00-\\uffef'
+                 + '\\u2190-\\u21ff\\u2200-\\u22ff\\u2026'
+                 + '，。、；：！？';
 
-  // 匹配包含至少一个 \命令 的非中文连续片段
-  // [^边界]* \command [^边界]* —— 贪婪匹配，把整个数学表达式作为一个整体包裹
+  // 匹配包含至少一个 \命令 的非边界连续片段
   const regex = new RegExp(
     '([^' + boundary + ']*\\\\[a-zA-Z]+[^' + boundary + ']*)',
     'g'
@@ -393,10 +396,14 @@ function wrapBareLatex(text) {
 
   return text.replace(regex, (match) => {
     const trimmed = match.trim();
-    if (trimmed) {
-      return '$' + trimmed + '$';
-    }
-    return match;
+    if (!trimmed) return match;
+
+    // 检查花括号是否配对（避免 \bigcup_{\alpha 这种只有 { 没有 } 的情况）
+    const open = (trimmed.match(/\{/g) || []).length;
+    const close = (trimmed.match(/\}/g) || []).length;
+    if (open !== close) return match; // 花括号不配对，不包裹（保持原文，不标红）
+
+    return '$' + trimmed + '$';
   });
 }
 let katexReady_ = null;
