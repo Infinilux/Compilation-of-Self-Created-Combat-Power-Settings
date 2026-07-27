@@ -21,6 +21,10 @@ const CATEGORY_CONFIG = {
   '超越旧神盒': {
     subs: [],
     page: 'category-beyond-godbox.html'
+  },
+  '未评定量级': {
+    subs: [],
+    page: 'category-unrated.html'
   }
 };
 
@@ -233,6 +237,7 @@ function renderNavbar(currentPage) {
       <a href="category-404.html" class="${currentPage === '404' ? 'active' : ''}">404标准</a>
       <a href="category-beyond-404.html" class="${currentPage === 'beyond404' ? 'active' : ''}">超越404</a>
       <a href="category-beyond-godbox.html" class="${currentPage === 'godbox' ? 'active' : ''}">超越旧神盒</a>
+      <a href="category-unrated.html" class="${currentPage === 'unrated' ? 'active' : ''}">未评定量级</a>
     </div>
   `;
   return nav;
