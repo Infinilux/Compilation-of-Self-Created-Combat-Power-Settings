@@ -130,9 +130,11 @@
 
       // 渲染正文（段落拆分）
       const paragraphs = text.content.split('\n').filter(p => p.trim());
-      document.getElementById('text-content').innerHTML = paragraphs.map(p =>
-        `<p>${p}</p>`
-      ).join('');
+      document.getElementById('text-content').innerHTML = paragraphs.map(p => {
+        // 预处理：把裸露的 LaTeX 命令用 $...$ 包裹，使 KaTeX 能识别
+        const wrapped = wrapBareLatex(p);
+        return `<p>${wrapped}</p>`;
+      }).join('');
 
       // 渲染正文中的 LaTeX 公式（KaTeX auto-render，异步等待加载完成）
       renderMath(document.getElementById('text-content'));

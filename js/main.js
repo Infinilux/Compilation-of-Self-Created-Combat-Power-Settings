@@ -36,7 +36,7 @@ let allTexts = [];
 let searchIndex = null;
 
 // 数据版本号（更新数据时手动递增此数字即可破坏缓存）
-const DATA_VERSION = '20260728';
+const DATA_VERSION = '20260729';
 
 // 加载数据（使用版本号破坏缓存，而不是 Date.now()）
 // 优先使用 localStorage 缓存，仅在版本更新时重新下载
@@ -366,6 +366,39 @@ function debounce(fn, delay = 200) {
 // LaTeX 渲染支持（KaTeX auto-render）
 // 异步等待 KaTeX 加载完成，不阻塞页面渲染
 // ============================================================
+
+// 预处理：把文本中裸露的 LaTeX 命令用 $...$ 包裹
+// 文档中的 \omega_0 等命令没有用 $...$ 包裹，
+// KaTeX auto-render 默认只处理有定界符的内容，因此需要预处理
+function wrapBareLatex(text) {
+  // 如果已经包含 $ 定界符，不处理（避免重复包裹）
+  if (text.includes('$')) return text;
+
+  // 修正 \ 后面多余的空格：\ Gamma → \Gamma
+  text = text.replace(/\\\s+([a-zA-Z])/g, '\\$1');
+
+  // 中文字符和中文标点作为片段边界
+  // \u4e00-\u9fff: 中文字符
+  // \u3000-\u303f: CJK 标点
+  // \uff00-\uffef: 全角字符（包括全角括号（）等）
+  // 额外中文标点
+  const boundary = '\\u4e00-\\u9fff\\u3000-\\u303f\\uff00-\\uffef，。、；：！？';
+
+  // 匹配包含至少一个 \命令 的非中文连续片段
+  // [^边界]* \command [^边界]* —— 贪婪匹配，把整个数学表达式作为一个整体包裹
+  const regex = new RegExp(
+    '([^' + boundary + ']*\\\\[a-zA-Z]+[^' + boundary + ']*)',
+    'g'
+  );
+
+  return text.replace(regex, (match) => {
+    const trimmed = match.trim();
+    if (trimmed) {
+      return '$' + trimmed + '$';
+    }
+    return match;
+  });
+}
 let katexReady_ = null;
 
 function loadKatex_() {
