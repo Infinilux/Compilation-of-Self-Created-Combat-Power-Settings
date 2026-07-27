@@ -36,7 +36,7 @@ let allTexts = [];
 let searchIndex = null;
 
 // 数据版本号（更新数据时手动递增此数字即可破坏缓存）
-const DATA_VERSION = '20260733';
+const DATA_VERSION = '20260734';
 
 // 加载数据（使用版本号破坏缓存，而不是 Date.now()）
 // 优先使用 localStorage 缓存，仅在版本更新时重新下载
