@@ -36,7 +36,7 @@ let allTexts = [];
 let searchIndex = null;
 
 // 数据版本号（更新数据时手动递增此数字即可破坏缓存）
-const DATA_VERSION = '20260732';
+const DATA_VERSION = '20260733';
 
 // 加载数据（使用版本号破坏缓存，而不是 Date.now()）
 // 优先使用 localStorage 缓存，仅在版本更新时重新下载
@@ -454,7 +454,42 @@ function renderMath(element) {
   });
 }
 
+// ============================================================
+// 公告条（可关闭，关闭后用 localStorage 记住不再显示）
+// ============================================================
+const ANNOUNCEMENT_KEY = 'announcement_closed_v1';
+const ANNOUNCEMENT_TEXT = '文本内容较多，首次加载较慢，请多等一下';
+
+function initAnnouncement() {
+  // 已关闭则不再显示
+  try {
+    if (localStorage.getItem(ANNOUNCEMENT_KEY) === '1') return;
+  } catch (e) { /* 忽略 */ }
+
+  // 避免重复插入
+  if (document.getElementById('site-announcement')) return;
+
+  const bar = document.createElement('div');
+  bar.id = 'site-announcement';
+  bar.className = 'announcement-bar';
+  bar.innerHTML = `
+    <span class="announcement-icon">&#128227;</span>
+    <span class="announcement-text">${ANNOUNCEMENT_TEXT}</span>
+    <button class="announcement-close" aria-label="关闭公告">&times;</button>
+  `;
+
+  // 插入到 body 最前面，navbar 会自动推到下方
+  document.body.insertBefore(bar, document.body.firstChild);
+
+  // 关闭按钮
+  bar.querySelector('.announcement-close').addEventListener('click', () => {
+    bar.style.display = 'none';
+    try { localStorage.setItem(ANNOUNCEMENT_KEY, '1'); } catch (e) { /* 忽略 */ }
+  });
+}
+
 // 初始化公共功能
 document.addEventListener('DOMContentLoaded', () => {
+  initAnnouncement();
   initNavToggle();
 });
