@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AOS标准 · 藏书阁</title>
   <link rel="stylesheet" href="css/style.css">
+  <!-- KaTeX 用于 LaTeX 公式渲染 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
 </head>
 <body>
 
@@ -30,6 +32,9 @@
   </div>
 
   <script src="js/main.js"></script>
+  <!-- KaTeX：LaTeX 公式渲染（defer 异步加载，不阻塞页面） -->
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
   <script>
     (async function() {
       const TOP_CAT = 'aos标准';

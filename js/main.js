@@ -340,6 +340,9 @@ function renderCardList(texts, query, container) {
       window.location.href = `reading.html?id=${id}`;
     });
   });
+
+  // 渲染卡片中的 LaTeX 公式（标题、摘要）
+  renderMath(container);
 }
 
 // 防抖工具函数（用于搜索输入优化）
@@ -352,6 +355,58 @@ function debounce(fn, delay = 200) {
       timer = null;
     }, delay);
   };
+}
+
+// ============================================================
+// LaTeX 渲染支持（KaTeX auto-render）
+// 异步等待 KaTeX 加载完成，不阻塞页面渲染
+// ============================================================
+let katexReady_ = null;
+
+function loadKatex_() {
+  if (katexReady_) return katexReady_;
+  katexReady_ = new Promise((resolve) => {
+    if (window.renderMathInElement) {
+      resolve();
+      return;
+    }
+    // 轮询等待 KaTeX auto-render 加载完成
+    let elapsed = 0;
+    const check = setInterval(() => {
+      elapsed += 50;
+      if (window.renderMathInElement) {
+        clearInterval(check);
+        resolve();
+      } else if (elapsed > 10000) {
+        // 超时保护：10 秒后放弃，避免 Promise 永远 pending
+        clearInterval(check);
+        resolve();
+      }
+    }, 50);
+  });
+  return katexReady_;
+}
+
+// 对指定 DOM 元素及其子节点中的 LaTeX 公式进行渲染
+// 支持 $...$、$$...$$、\(...\)、\[...\] 定界符
+function renderMath(element) {
+  if (!element) return Promise.resolve();
+  return loadKatex_().then(() => {
+    if (!window.renderMathInElement) return;
+    try {
+      renderMathInElement(element, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '\\[', right: '\\]', display: true },
+          { left: '\\(', right: '\\)', display: false },
+          { left: '$', right: '$', display: false }
+        ],
+        throwOnError: false,
+        ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoredClasses: ['no-math']
+      });
+    } catch (e) { /* 渲染失败时保留原始文本 */ }
+  });
 }
 
 // 初始化公共功能

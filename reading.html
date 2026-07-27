@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>阅读 · 藏书阁</title>
   <link rel="stylesheet" href="css/style.css">
+  <!-- KaTeX 用于 LaTeX 公式渲染 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
 </head>
 <body>
 
@@ -96,6 +98,9 @@
   </div>
 
   <script src="js/main.js"></script>
+  <!-- KaTeX：LaTeX 公式渲染（defer 异步加载，不阻塞页面） -->
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
   <script>
     (async function() {
       // 渲染导航栏
@@ -128,6 +133,9 @@
       document.getElementById('text-content').innerHTML = paragraphs.map(p =>
         `<p>${p}</p>`
       ).join('');
+
+      // 渲染正文中的 LaTeX 公式（KaTeX auto-render，异步等待加载完成）
+      renderMath(document.getElementById('text-content'));
 
       // --- 阅读设置 ---
       const contentEl = document.getElementById('text-content');
