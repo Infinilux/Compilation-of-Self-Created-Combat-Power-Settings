@@ -106,7 +106,7 @@
       // 渲染导航栏
       document.getElementById('navbar').appendChild(renderNavbar('reading'));
 
-      // 加载数据
+      // 加载索引（轻量，秒开）
       await loadData();
 
       // 获取文本 ID
@@ -119,7 +119,7 @@
         return;
       }
 
-      // 填充内容
+      // 1. 立即渲染元信息（标题、作者、日期、标签）—— 来自 index.json，无需等待正文
       document.title = text.title + ' · 藏书阁';
       document.getElementById('text-title').textContent = text.title;
       document.getElementById('text-author').innerHTML = '&#9998; ' + text.author;
@@ -128,24 +128,31 @@
         `<span class="reading-tag">${c}</span>`
       ).join('');
 
-      // 渲染正文（段落拆分）
-      const paragraphs = text.content.split('\n').filter(p => p.trim());
-      document.getElementById('text-content').innerHTML = paragraphs.map(p => {
-        // 预处理：把裸露的 LaTeX 命令用 $...$ 包裹，使 KaTeX 能识别
+      // 2. 显示加载占位符
+      const contentEl = document.getElementById('text-content');
+      const bgImageEl = document.getElementById('bg-image');
+      contentEl.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:40px 0;">正在加载正文…</p>';
+
+      // 3. 异步加载完整正文
+      const content = await loadTextById(id);
+      if (content === null) {
+        contentEl.innerHTML = '<p style="color:var(--text-muted);">正文加载失败，请刷新重试。</p>';
+        return;
+      }
+
+      // 4. 渲染正文（段落拆分 + LaTeX 预处理）
+      const paragraphs = content.split('\n').filter(p => p.trim());
+      contentEl.innerHTML = paragraphs.map(p => {
         const wrapped = wrapBareLatex(p);
         return `<p>${wrapped}</p>`;
       }).join('');
 
-      // 渲染正文中的 LaTeX 公式（KaTeX auto-render，异步等待加载完成）
-      renderMath(document.getElementById('text-content'));
+      // 5. 渲染正文中的 LaTeX 公式
+      renderMath(contentEl);
 
-      // --- 阅读设置 ---
-      const contentEl = document.getElementById('text-content');
-      const bgImageEl = document.getElementById('bg-image');
-
-      // 字数及符号统计
-      document.getElementById('stat-words').textContent = countWords(text.content);
-      document.getElementById('stat-symbols').textContent = countSymbols(text.content);
+      // 6. 字数及符号统计
+      document.getElementById('stat-words').textContent = countWords(content);
+      document.getElementById('stat-symbols').textContent = countSymbols(content);
 
       // 字体大小
       const fontSizeSlider = document.getElementById('slider-fontsize');

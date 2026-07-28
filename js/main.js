@@ -30,19 +30,21 @@ const CATEGORY_CONFIG = {
 
 const TOP_CATEGORIES = Object.keys(CATEGORY_CONFIG);
 
-// 全局数据缓存
+// 全局数据缓存（仅元数据 + 摘要，不含正文）
 let allTexts = [];
 // 搜索索引缓存（避免每次输入都重新计算 toLowerCase）
 let searchIndex = null;
+// 单个文档正文缓存（内存）：id -> content
+const textContentCache = {};
 
 // 数据版本号（更新数据时手动递增此数字即可破坏缓存）
-const DATA_VERSION = '20260736';
+const DATA_VERSION = '20260737';
 
-// 加载数据（使用版本号破坏缓存，而不是 Date.now()）
-// 优先使用 localStorage 缓存，仅在版本更新时重新下载
+// 加载索引（轻量，仅元数据+摘要，约 15KB）
+// 列表页和阅读页共用，用于展示卡片和搜索
 async function loadData() {
   try {
-    const cacheKey = 'data_cache_v' + DATA_VERSION;
+    const cacheKey = 'index_cache_v' + DATA_VERSION;
 
     // 尝试从 localStorage 读取缓存
     try {
@@ -50,23 +52,22 @@ async function loadData() {
       if (cached) {
         allTexts = JSON.parse(cached);
         // 后台异步检查更新（不阻塞渲染）
-        refreshDataInBackground(cacheKey);
+        refreshIndexInBackground(cacheKey);
         return allTexts;
       }
     } catch (e) {
       // localStorage 不可用或缓存损坏，忽略
     }
 
-    // 无缓存，直接下载
-    const resp = await fetch('data.json?v=' + DATA_VERSION);
-    if (!resp.ok) throw new Error('数据加载失败');
+    // 无缓存，直接下载 index.json（15KB，秒开）
+    const resp = await fetch('index.json?v=' + DATA_VERSION);
+    if (!resp.ok) throw new Error('索引加载失败');
     allTexts = await resp.json();
 
-    // 写入缓存
+    // 写入缓存（15KB 完全没问题）
     try {
       localStorage.setItem(cacheKey, JSON.stringify(allTexts));
     } catch (e) {
-      // localStorage 满了或不可用，清理旧缓存
       cleanOldCache();
       try {
         localStorage.setItem(cacheKey, JSON.stringify(allTexts));
@@ -75,38 +76,62 @@ async function loadData() {
 
     return allTexts;
   } catch (err) {
-    console.error('加载 data.json 失败:', err);
+    console.error('加载 index.json 失败:', err);
     return [];
   }
 }
 
-// 后台静默刷新数据（使用 ETag/Last-Modified 检测更新）
-async function refreshDataInBackground(cacheKey) {
+// 按需加载单个文档的完整正文（阅读页使用）
+// 大文档（>500KB）只内存缓存，不进 localStorage；小文档进 localStorage
+async function loadTextById(id) {
+  // 1. 内存缓存
+  if (textContentCache[id]) return textContentCache[id];
+
+  // 2. localStorage 缓存（仅小文档）
+  const lsKey = 'text_v' + DATA_VERSION + '_' + id;
   try {
-    const resp = await fetch('data.json?v=' + DATA_VERSION, { method: 'GET' });
-    if (!resp.ok) return;
-    const fresh = await resp.json();
-    // 仅在数据确实变化时更新缓存
-    const freshStr = JSON.stringify(fresh);
-    const cachedStr = localStorage.getItem(cacheKey);
-    if (freshStr !== cachedStr) {
-      localStorage.setItem(cacheKey, freshStr);
-      allTexts = fresh;
-      // 重建搜索索引
-      searchIndex = null;
+    const cached = localStorage.getItem(lsKey);
+    if (cached) {
+      const data = JSON.parse(cached);
+      textContentCache[id] = data.content;
+      return data.content;
     }
-  } catch (e) {
-    // 后台刷新失败不影响用户使用
+  } catch (e) { /* 忽略 */ }
+
+  // 3. 从服务器下载 data/{id}.json
+  try {
+    const resp = await fetch(`data/${id}.json?v=` + DATA_VERSION);
+    if (!resp.ok) throw new Error('文档加载失败');
+    const data = await resp.json();
+    textContentCache[id] = data.content;
+
+    // 小文档（< 200KB）写入 localStorage，大文档只内存缓存
+    if (data.content.length < 200000) {
+      try {
+        localStorage.setItem(lsKey, JSON.stringify({ content: data.content }));
+      } catch (e) {
+        // localStorage 满了，清理旧版本文档缓存
+        cleanOldTextCache();
+        try {
+          localStorage.setItem(lsKey, JSON.stringify({ content: data.content }));
+        } catch (e2) { /* 忽略 */ }
+      }
+    }
+    return data.content;
+  } catch (err) {
+    console.error(`加载文档 ${id} 失败:`, err);
+    return null;
   }
 }
 
-// 清理旧版本缓存
-function cleanOldCache() {
+// 清理旧版本的文档正文缓存
+function cleanOldTextCache() {
   try {
     const keysToRemove = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith('data_cache_v') && key !== 'data_cache_v' + DATA_VERSION) {
+      // 清理旧版本的 text_v* 缓存
+      if (key && key.startsWith('text_v') && !key.startsWith('text_v' + DATA_VERSION)) {
         keysToRemove.push(key);
       }
     }
@@ -114,21 +139,59 @@ function cleanOldCache() {
   } catch (e) { /* 忽略 */ }
 }
 
-// 构建搜索索引（仅在第一次搜索时构建）
+// 后台静默刷新索引
+async function refreshIndexInBackground(cacheKey) {
+  try {
+    const resp = await fetch('index.json?v=' + DATA_VERSION, { method: 'GET' });
+    if (!resp.ok) return;
+    const fresh = await resp.json();
+    const freshStr = JSON.stringify(fresh);
+    const cachedStr = localStorage.getItem(cacheKey);
+    if (freshStr !== cachedStr) {
+      localStorage.setItem(cacheKey, freshStr);
+      allTexts = fresh;
+      searchIndex = null;
+    }
+  } catch (e) {
+    // 后台刷新失败不影响用户使用
+  }
+}
+
+// 清理旧版本索引缓存
+function cleanOldCache() {
+  try {
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('index_cache_v') && key !== 'index_cache_v' + DATA_VERSION) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+    cleanOldTextCache();
+  } catch (e) { /* 忽略 */ }
+}
+
+// 构建搜索索引（搜标题+作者+摘要，不搜全文）
+// 列表页只加载了 index.json（无正文），所以搜索基于摘要
 function buildSearchIndex() {
   if (searchIndex) return searchIndex;
   searchIndex = allTexts.map(t => ({
     id: t.id,
     titleLower: t.title.toLowerCase(),
-    contentLower: t.content.toLowerCase(),
-    // 保留原始引用避免重复存储
+    authorLower: (t.author || '').toLowerCase(),
+    summaryLower: (t.summary || '').toLowerCase(),
     ref: t
   }));
   return searchIndex;
 }
 
-// 获取文本摘要（前100字）
-function getExcerpt(content, len = 100) {
+// 获取文本摘要（从 index 的 summary 字段取，或从 content 截取）
+function getExcerpt(text, len = 100) {
+  // 优先使用 index 中的 summary 字段
+  if (text.summary) return text.summary;
+  // 兼容旧数据：从 content 截取
+  const content = text.content || '';
   const cleaned = content.replace(/\s+/g, ' ').trim();
   return cleaned.length > len ? cleaned.slice(0, len) + '…' : cleaned;
 }
@@ -143,7 +206,8 @@ function filterBySubCategory(texts, subCategory) {
   return texts.filter(t => t.categories.includes(subCategory));
 }
 
-// 搜索文本（使用预构建的索引，避免每次输入都调用 toLowerCase）
+// 搜索文本（搜标题+作者+摘要，不搜全文）
+// 列表页只加载了 index.json（无正文），所以搜索基于摘要
 function searchTexts(texts, query) {
   if (!query.trim()) return texts.map(t => ({ ...t, matches: [] }));
   const q = query.trim().toLowerCase();
@@ -156,9 +220,10 @@ function searchTexts(texts, query) {
   for (const item of index) {
     if (!idSet.has(item.id)) continue;
     const titleMatch = item.titleLower.includes(q);
-    const contentMatch = item.contentLower.includes(q);
-    if (titleMatch || contentMatch) {
-      results.push({ ...item.ref, matches: { title: titleMatch, content: contentMatch } });
+    const authorMatch = item.authorLower.includes(q);
+    const summaryMatch = item.summaryLower.includes(q);
+    if (titleMatch || authorMatch || summaryMatch) {
+      results.push({ ...item.ref, matches: { title: titleMatch, author: authorMatch, summary: summaryMatch } });
     }
   }
   return results;
@@ -322,7 +387,7 @@ function renderCardList(texts, query, container) {
 
   container.innerHTML = texts.map(t => {
     const titleHtml = highlightText(t.title, query);
-    const excerptHtml = highlightText(getExcerpt(t.content), query);
+    const excerptHtml = highlightText(getExcerpt(t), query);
     return `
       <div class="card" data-id="${t.id}">
         <div class="card-title">${titleHtml}</div>
