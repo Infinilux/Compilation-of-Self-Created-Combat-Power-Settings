@@ -14,10 +14,6 @@ const CATEGORY_CONFIG = {
     subs: ['论外三线', '论外二线', '论外一线', '论外超一线', '论外天花板·下', '论外天花板·中', '论外天花板·上', '论外天花板·最上'],
     page: 'category-404.html'
   },
-  '超越404标准': {
-    subs: [],
-    page: 'category-beyond-404.html'
-  },
   '超越旧神盒': {
     subs: [],
     page: 'category-beyond-godbox.html'
@@ -38,7 +34,7 @@ let searchIndex = null;
 const textContentCache = {};
 
 // 数据版本号（更新数据时手动递增此数字即可破坏缓存）
-const DATA_VERSION = '20260743';
+const DATA_VERSION = '20260744';
 
 // 加载索引（轻量，仅元数据+摘要，约 15KB）
 // 列表页和阅读页共用，用于展示卡片和搜索
@@ -300,7 +296,6 @@ function renderNavbar(currentPage) {
     <div class="navbar-links">
       <a href="category-aos.html" class="${currentPage === 'aos' ? 'active' : ''}">AOS标准</a>
       <a href="category-404.html" class="${currentPage === '404' ? 'active' : ''}">404标准</a>
-      <a href="category-beyond-404.html" class="${currentPage === 'beyond404' ? 'active' : ''}">超越404</a>
       <a href="category-beyond-godbox.html" class="${currentPage === 'godbox' ? 'active' : ''}">超越旧神盒</a>
       <a href="category-unrated.html" class="${currentPage === 'unrated' ? 'active' : ''}">未评定量级</a>
     </div>
