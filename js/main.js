@@ -38,7 +38,7 @@ let searchIndex = null;
 const textContentCache = {};
 
 // 数据版本号（更新数据时手动递增此数字即可破坏缓存）
-const DATA_VERSION = '20260742';
+const DATA_VERSION = '20260743';
 
 // 加载索引（轻量，仅元数据+摘要，约 15KB）
 // 列表页和阅读页共用，用于展示卡片和搜索
@@ -522,8 +522,8 @@ function renderMath(element) {
 // ============================================================
 // 公告条（可关闭，关闭后用 localStorage 记住不再显示）
 // ============================================================
-const ANNOUNCEMENT_KEY = 'announcement_closed_v1';
-const ANNOUNCEMENT_TEXT = '文本内容较多，首次加载较慢，请多等一下';
+const ANNOUNCEMENT_KEY = 'announcement_closed_v2';
+const ANNOUNCEMENT_TEXT = '若想提交公开自创战力作品，请联系网站作者 B站:屑鹿a';
 
 function initAnnouncement() {
   // 已关闭则不再显示
