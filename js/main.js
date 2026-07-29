@@ -34,7 +34,7 @@ let searchIndex = null;
 const textContentCache = {};
 
 // 数据版本号（更新数据时手动递增此数字即可破坏缓存）
-const DATA_VERSION = '20260750';
+const DATA_VERSION = '20260751';
 
 // 加载索引（轻量，仅元数据+摘要，约 15KB）
 // 列表页和阅读页共用，用于展示卡片和搜索
