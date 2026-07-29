@@ -983,6 +983,32 @@ input[type="range"]::-webkit-slider-thumb {
   transform: translateY(1px);
 }
 
+.changelog-entry {
+  margin-bottom: 28px;
+  padding: 22px 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.changelog-date {
+  margin-bottom: 14px;
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.changelog-entry ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.changelog-entry li {
+  margin: 8px 0;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
 /* 响应式 */
 @media (max-width: 600px) {
   .landing-title {

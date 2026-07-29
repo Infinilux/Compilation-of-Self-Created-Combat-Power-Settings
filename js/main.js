@@ -34,7 +34,7 @@ let searchIndex = null;
 const textContentCache = {};
 
 // 数据版本号（更新数据时手动递增此数字即可破坏缓存）
-const DATA_VERSION = '20260744';
+const DATA_VERSION = '20260745';
 
 // 加载索引（轻量，仅元数据+摘要，约 15KB）
 // 列表页和阅读页共用，用于展示卡片和搜索
@@ -298,6 +298,7 @@ function renderNavbar(currentPage) {
       <a href="category-404.html" class="${currentPage === '404' ? 'active' : ''}">404标准</a>
       <a href="category-beyond-godbox.html" class="${currentPage === 'godbox' ? 'active' : ''}">超越旧神盒</a>
       <a href="category-unrated.html" class="${currentPage === 'unrated' ? 'active' : ''}">未评定量级</a>
+      <a href="changelog.html" class="${currentPage === 'changelog' ? 'active' : ''}">更新日志</a>
     </div>
   `;
   return nav;
