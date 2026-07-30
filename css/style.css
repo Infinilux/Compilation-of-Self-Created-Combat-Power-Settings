@@ -524,10 +524,13 @@ body.reading-bg-deeper { background: #050505; }
   bottom: 88px;
   right: 28px;
   width: 300px;
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 20px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
   z-index: 199;
   box-shadow: var(--shadow);
   opacity: 0;
@@ -1027,6 +1030,7 @@ input[type="range"]::-webkit-slider-thumb {
     width: calc(100vw - 40px);
     right: 20px;
     bottom: 80px;
+    max-height: calc(100vh - 130px);
   }
   .reading-title {
     font-size: 1.4rem;
