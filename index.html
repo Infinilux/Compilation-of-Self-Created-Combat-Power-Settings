@@ -23,12 +23,10 @@
     // 初始化粒子系统
     const particleSystem = initParticles();
 
-    // 进入按钮
+    // 前往新站
     document.getElementById('btn-enter').addEventListener('click', () => {
-      // 销毁粒子系统
       if (particleSystem) particleSystem.destroy();
-      // 跳转到 AOS 标准页
-      window.location.href = 'category-aos.html';
+      window.location.href = 'https://polytropy.dpdns.org/';
     });
   </script>
 </body>
